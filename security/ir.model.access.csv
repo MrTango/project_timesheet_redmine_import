@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_redmine_backend_manager,redmine.backend manager,model_redmine_backend,project.group_project_manager,1,1,1,1
+access_redmine_backend_system,redmine.backend system,model_redmine_backend,base.group_system,1,1,1,1
+access_redmine_employee_map_manager,redmine.employee.map manager,model_redmine_employee_map,project.group_project_manager,1,1,1,1
+access_redmine_employee_map_system,redmine.employee.map system,model_redmine_employee_map,base.group_system,1,1,1,1
+access_redmine_import_log_manager,redmine.import.log manager,model_redmine_import_log,project.group_project_manager,1,0,0,0
+access_redmine_import_log_system,redmine.import.log system,model_redmine_import_log,base.group_system,1,1,1,1
+access_redmine_import_log_line_manager,redmine.import.log line manager,model_redmine_import_log_line,project.group_project_manager,1,0,0,0
+access_redmine_import_log_line_system,redmine.import.log line system,model_redmine_import_log_line,base.group_system,1,1,1,1

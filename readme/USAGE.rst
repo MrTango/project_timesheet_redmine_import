@@ -1,0 +1,1 @@
+Use **Import Redmine Hours** on a mapped project for preview or import. Enable both the backend cron and project import switches for daily rolling synchronization. Review all results under Redmine Import Logs.

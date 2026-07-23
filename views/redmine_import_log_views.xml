@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_redmine_import_log_search" model="ir.ui.view">
+        <field name="name">redmine.import.log.search</field>
+        <field name="model">redmine.import.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="backend_id"/>
+                <field name="project_id"/>
+                <field name="state"/>
+                <filter name="has_errors" string="With Errors" domain="[('errors', '&gt;', 0)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_backend" string="Backend" context="{'group_by': 'backend_id'}"/>
+                    <filter name="group_project" string="Project" context="{'group_by': 'project_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_redmine_import_log_tree" model="ir.ui.view">
+        <field name="name">redmine.import.log.tree</field>
+        <field name="model">redmine.import.log</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false" delete="false" decoration-danger="state == 'failed'" decoration-warning="state == 'partial'" decoration-info="state == 'preview'">
+                <field name="started_at"/>
+                <field name="backend_id"/>
+                <field name="project_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="state"/>
+                <field name="imported"/>
+                <field name="updated"/>
+                <field name="skipped"/>
+                <field name="errors"/>
+                <field name="duration"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_redmine_import_log_form" model="ir.ui.view">
+        <field name="name">redmine.import.log.form</field>
+        <field name="model">redmine.import.log</field>
+        <field name="arch" type="xml">
+            <form string="Redmine Import Log" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title"><h1><field name="state"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="backend_id"/>
+                            <field name="project_id"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="preview"/>
+                            <field name="update_existing"/>
+                        </group>
+                        <group>
+                            <field name="started_at"/>
+                            <field name="finished_at"/>
+                            <field name="duration"/>
+                            <field name="imported"/>
+                            <field name="updated"/>
+                            <field name="skipped"/>
+                            <field name="errors"/>
+                        </group>
+                    </group>
+                    <group><field name="summary" nolabel="1"/></group>
+                    <notebook>
+                        <page string="Details">
+                            <field name="line_ids">
+                                <tree decoration-danger="severity == 'error'" decoration-warning="severity == 'warning'">
+                                    <field name="severity"/>
+                                    <field name="redmine_time_entry_id"/>
+                                    <field name="message"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_redmine_import_log" model="ir.actions.act_window">
+        <field name="name">Import Logs</field>
+        <field name="res_model">redmine.import.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_redmine_import_log_search"/>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+    <menuitem id="menu_redmine_import_log" name="Import Logs" parent="menu_redmine_root" action="action_redmine_import_log" sequence="30" groups="project.group_project_manager,base.group_system"/>
+</odoo>

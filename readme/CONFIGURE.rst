@@ -1,0 +1,1 @@
+Create a Redmine backend under Project Configuration, map an existing Odoo project to the numeric Redmine project ID, enable import, and maintain Redmine user-to-employee mappings. See the top-level README for API permissions and sales-timesheet prerequisites.

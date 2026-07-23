@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_redmine_import_wizard_form" model="ir.ui.view">
+        <field name="name">redmine.import.wizard.form</field>
+        <field name="model">redmine.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Redmine Hours">
+                <group>
+                    <field name="project_id"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="preview_only"/>
+                    <field name="update_existing"/>
+                </group>
+                <div class="alert alert-info" role="alert" attrs="{'invisible': [('preview_only', '=', False)]}">
+                    Preview reads and validates Redmine data but does not create or update mappings, tasks, timesheets, or synchronization timestamps.
+                </div>
+                <footer>
+                    <button name="action_import" type="object" string="Run Import" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_redmine_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import Redmine Hours</field>
+        <field name="res_model">redmine.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_redmine_import_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

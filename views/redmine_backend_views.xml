@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_redmine_backend_search" model="ir.ui.view">
+        <field name="name">redmine.backend.search</field>
+        <field name="model">redmine.backend</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="base_url"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="cron_enabled" string="Cron Enabled" domain="[('enable_cron', '=', True)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_redmine_backend_tree" model="ir.ui.view">
+        <field name="name">redmine.backend.tree</field>
+        <field name="model">redmine.backend</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="not active">
+                <field name="name"/>
+                <field name="base_url"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="enable_cron"/>
+                <field name="last_synchronization"/>
+                <field name="active" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_redmine_backend_form" model="ir.ui.view">
+        <field name="name">redmine.backend.form</field>
+        <field name="model">redmine.backend</field>
+        <field name="arch" type="xml">
+            <form string="Redmine Backend">
+                <header>
+                    <button name="action_test_connection" type="object" string="Test Connection" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group string="Connection">
+                            <field name="base_url" placeholder="https://redmine.example.com"/>
+                            <field name="api_key" password="True"/>
+                            <field name="verify_ssl"/>
+                            <field name="active"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Synchronization">
+                            <field name="import_start_date"/>
+                            <field name="synchronization_window"/>
+                            <field name="default_employee_id"/>
+                            <field name="enable_cron"/>
+                            <field name="last_synchronization"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Projects">
+                            <field name="project_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="redmine_project_id"/>
+                                    <field name="redmine_project_identifier"/>
+                                    <field name="redmine_import_enabled"/>
+                                    <field name="last_redmine_sync"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_redmine_backend" model="ir.actions.act_window">
+        <field name="name">Redmine Backends</field>
+        <field name="res_model">redmine.backend</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_redmine_backend_search"/>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <menuitem id="menu_redmine_root" name="Redmine" parent="project.menu_project_config" sequence="80" groups="project.group_project_manager,base.group_system"/>
+    <menuitem id="menu_redmine_backend" name="Backends" parent="menu_redmine_root" action="action_redmine_backend" sequence="10" groups="project.group_project_manager,base.group_system"/>
+</odoo>

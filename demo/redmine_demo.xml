@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="redmine_backend_demo" model="redmine.backend">
+        <field name="name">Redmine Demo (inactive)</field>
+        <field name="base_url">https://redmine.example.invalid</field>
+        <field name="api_key">demo-not-a-real-key</field>
+        <field name="verify_ssl" eval="True"/>
+        <field name="active" eval="False"/>
+        <field name="enable_cron" eval="False"/>
+        <field name="import_start_date">2020-01-01</field>
+        <field name="company_id" ref="base.main_company"/>
+    </record>
+</odoo>

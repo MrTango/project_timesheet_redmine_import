@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_redmine_employee_map_search" model="ir.ui.view">
+        <field name="name">redmine.employee.map.search</field>
+        <field name="model">redmine.employee.map</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="redmine_name"/>
+                <field name="redmine_login"/>
+                <field name="redmine_email"/>
+                <field name="employee_id"/>
+                <field name="backend_id"/>
+                <filter name="unmapped" string="Unmapped" domain="[('employee_id', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_backend" string="Backend" context="{'group_by': 'backend_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_redmine_employee_map_tree" model="ir.ui.view">
+        <field name="name">redmine.employee.map.tree</field>
+        <field name="model">redmine.employee.map</field>
+        <field name="arch" type="xml">
+            <tree decoration-warning="not employee_id" editable="bottom">
+                <field name="backend_id"/>
+                <field name="redmine_user_id"/>
+                <field name="redmine_login"/>
+                <field name="redmine_name"/>
+                <field name="redmine_email"/>
+                <field name="company_id" invisible="1"/>
+                <field name="employee_id"/>
+                <field name="warning"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_redmine_employee_map_form" model="ir.ui.view">
+        <field name="name">redmine.employee.map.form</field>
+        <field name="model">redmine.employee.map</field>
+        <field name="arch" type="xml">
+            <form string="Redmine Employee Mapping">
+                <sheet>
+                    <group>
+                        <group string="Redmine">
+                            <field name="backend_id"/>
+                            <field name="redmine_user_id"/>
+                            <field name="redmine_login"/>
+                            <field name="redmine_name"/>
+                            <field name="redmine_email"/>
+                        </group>
+                        <group string="Odoo">
+                            <field name="company_id" invisible="1"/>
+                            <field name="employee_id"/>
+                            <field name="warning" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_redmine_employee_map" model="ir.actions.act_window">
+        <field name="name">Employee Mappings</field>
+        <field name="res_model">redmine.employee.map</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_redmine_employee_map_search"/>
+    </record>
+    <menuitem id="menu_redmine_employee_map" name="Employee Mappings" parent="menu_redmine_root" action="action_redmine_employee_map" sequence="20" groups="project.group_project_manager,base.group_system"/>
+</odoo>
