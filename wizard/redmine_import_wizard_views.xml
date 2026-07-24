@@ -13,7 +13,7 @@
                     <field name="update_existing"/>
                 </group>
                 <div class="alert alert-info" role="alert" attrs="{'invisible': [('preview_only', '=', False)]}">
-                    Preview reads and validates Redmine data but does not create or update mappings, tasks, timesheets, or synchronization timestamps.
+                    Preview may resolve and store the numeric Redmine project ID. It does not create or update employee mappings, tasks, timesheets, or synchronization timestamps.
                 </div>
                 <footer>
                     <button name="action_import" type="object" string="Run Import" class="btn-primary"/>

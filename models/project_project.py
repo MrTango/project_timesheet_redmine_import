@@ -70,16 +70,22 @@ class ProjectProject(models.Model):
     @api.constrains(
         "redmine_backend_id",
         "redmine_project_id",
+        "redmine_project_identifier",
         "redmine_import_enabled",
         "company_id",
     )
     def _check_redmine_configuration(self):
         for project in self:
+            identifier = (project.redmine_project_identifier or "").strip()
             if project.redmine_import_enabled and (
-                not project.redmine_backend_id or project.redmine_project_id <= 0
+                not project.redmine_backend_id
+                or (project.redmine_project_id <= 0 and not identifier)
             ):
                 raise ValidationError(
-                    _("An enabled import requires a backend and a positive Redmine Project ID.")
+                    _(
+                        "An enabled import requires a backend and a Redmine "
+                        "Project Identifier."
+                    )
                 )
             if (
                 project.redmine_backend_id

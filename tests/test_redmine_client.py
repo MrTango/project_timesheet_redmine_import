@@ -41,6 +41,29 @@ class TestRedmineClient(TransactionCase):
         self.assertEqual(2, session.get.call_args_list[1].kwargs["params"]["offset"])
         self.assertNotIn("secret", str(session.get.call_args_list[0].kwargs["params"]))
 
+    def test_project_identifier_resolves_to_numeric_id(self):
+        session = Mock()
+        session.get.return_value = self._response(
+            {
+                "project": {
+                    "id": 42,
+                    "name": "Customer Portal",
+                    "identifier": "customer-portal",
+                }
+            }
+        )
+        client = RedmineClient(
+            "https://redmine.example.com", "secret", session=session, max_retries=0
+        )
+
+        project_id = client.resolve_project_id("customer-portal")
+
+        self.assertEqual(42, project_id)
+        self.assertEqual(
+            "https://redmine.example.com/projects/customer-portal.json",
+            session.get.call_args.args[0],
+        )
+
     def test_invalid_collection_is_rejected(self):
         session = Mock()
         session.get.return_value = self._response({"unexpected": []})

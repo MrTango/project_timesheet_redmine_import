@@ -16,7 +16,8 @@ Features
 
 * Multiple Redmine backends with SSL verification, connection test, start date,
   rolling synchronization window, optional default employee, and cron switch.
-* Explicit Redmine-to-Odoo project and employee mappings.
+* Redmine project identifiers automatically resolved to numeric project IDs,
+  plus explicit employee mappings.
 * Automatic employee suggestions by exact, case-insensitive work email when the
   API user may list Redmine users.
 * Paginated imports filtered by Redmine project and ``spent_on`` date range.
@@ -81,8 +82,9 @@ Project mapping
 Open the existing Odoo project and its **Redmine** page:
 
 #. Select the backend.
-#. Enter Redmine's numeric project ID and, optionally, its identifier.
-#. Enable the import.
+#. Enter Redmine's project identifier, such as ``customer-portal``.
+#. Enable the import. The first preview or import resolves and stores Redmine's
+   numeric project ID automatically; later runs refresh it from the identifier.
 #. Choose whether missing Redmine issues create Odoo tasks.
 #. If task creation is enabled, choose one of:
 
@@ -123,7 +125,8 @@ On a mapped project's **Redmine** page, click **Import Redmine Hours**. Select a
 From Date and To Date and choose:
 
 * **Preview only**: read and validate API data and show would-import/would-update
-  counts without changing mappings, tasks, timesheets, or synchronization dates.
+  counts. It may resolve and store the numeric Redmine project ID, but does not
+  change employee mappings, tasks, timesheets, or synchronization dates.
 * **Update existing**: permit changes only when the fetched Redmine
   ``updated_on`` is strictly newer.
 

@@ -2,16 +2,25 @@
 
 from datetime import date
 
+from odoo.exceptions import ValidationError
 from odoo.tests.common import SavepointCase
 
 from ..services.import_service import RedmineImportService
 
 
 class FakeRedmineClient(object):
-    def __init__(self, entries, users=None, issues=None):
+    def __init__(self, entries, users=None, issues=None, project_id=None):
         self.entries = entries
         self.users = users
         self.issues = issues
+        self.project_id = project_id
+        self.resolved_identifiers = []
+
+    def resolve_project_id(self, identifier):
+        self.resolved_identifiers.append(identifier)
+        if self.project_id is None:
+            raise AssertionError("A configured project ID should not be resolved again")
+        return self.project_id
 
     def iter_time_entry_pages(self, project_id, date_from, date_to):
         yield self.entries
@@ -86,6 +95,120 @@ class TestRedmineImportService(SavepointCase):
             update_existing=True,
             client=client or FakeRedmineClient([entry]),
         ).run()
+
+    def test_import_enabled_rejects_blank_identifier_without_project_id(self):
+        with self.assertRaises(ValidationError):
+            self.env["project.project"].create(
+                {
+                    "name": "Invalid Redmine Project",
+                    "company_id": self.env.company.id,
+                    "redmine_backend_id": self.backend.id,
+                    "redmine_project_identifier": "   ",
+                    "redmine_import_enabled": True,
+                }
+            )
+
+    def test_import_resolves_and_stores_project_id_from_identifier(self):
+        project = self.env["project.project"].create(
+            {
+                "name": "Automatically Resolved Project",
+                "allow_timesheets": True,
+                "company_id": self.env.company.id,
+                "redmine_backend_id": self.backend.id,
+                "redmine_project_identifier": "customer-portal",
+                "redmine_import_enabled": True,
+            }
+        )
+        entry = self._entry()
+        entry["id"] = 5005
+        entry["project"] = {"id": 84, "name": "Customer Portal"}
+        client = FakeRedmineClient([entry], project_id=84)
+
+        log = RedmineImportService(
+            self.env,
+            self.backend,
+            project,
+            date(2025, 1, 1),
+            date(2025, 1, 31),
+            preview=True,
+            client=client,
+        ).run()
+
+        self.assertEqual("preview", log.state)
+        self.assertEqual(84, project.redmine_project_id)
+        self.assertEqual(["customer-portal"], client.resolved_identifiers)
+        self.assertFalse(
+            self.env["account.analytic.line"].search(
+                [
+                    ("redmine_backend_id", "=", self.backend.id),
+                    ("redmine_time_entry_id", "=", 5005),
+                ]
+            )
+        )
+
+    def test_import_refreshes_project_id_when_identifier_is_authoritative(self):
+        project = self.env["project.project"].create(
+            {
+                "name": "Renamed Redmine Project",
+                "allow_timesheets": True,
+                "company_id": self.env.company.id,
+                "redmine_backend_id": self.backend.id,
+                "redmine_project_id": 84,
+                "redmine_project_identifier": "renamed-project",
+                "redmine_import_enabled": True,
+            }
+        )
+        entry = self._entry()
+        entry["id"] = 6006
+        entry["project"] = {"id": 85, "name": "Renamed Project"}
+        client = FakeRedmineClient([entry], project_id=85)
+
+        log = RedmineImportService(
+            self.env,
+            self.backend,
+            project,
+            date(2025, 1, 1),
+            date(2025, 1, 31),
+            client=client,
+        ).run()
+
+        self.assertEqual("done", log.state)
+        self.assertEqual(85, project.redmine_project_id)
+        self.assertEqual(["renamed-project"], client.resolved_identifiers)
+
+    def test_project_id_mapping_conflict_returns_failed_import_log(self):
+        self.env["project.project"].create(
+            {
+                "name": "Existing Redmine Mapping",
+                "company_id": self.env.company.id,
+                "redmine_backend_id": self.backend.id,
+                "redmine_project_id": 4242,
+            }
+        )
+        project = self.env["project.project"].create(
+            {
+                "name": "Conflicting Redmine Project",
+                "allow_timesheets": True,
+                "company_id": self.env.company.id,
+                "redmine_backend_id": self.backend.id,
+                "redmine_project_identifier": "duplicate-project",
+                "redmine_import_enabled": True,
+            }
+        )
+        client = FakeRedmineClient([], project_id=4242)
+
+        log = RedmineImportService(
+            self.env,
+            self.backend,
+            project,
+            date(2025, 1, 1),
+            date(2025, 1, 31),
+            client=client,
+        ).run()
+
+        self.assertEqual("failed", log.state)
+        self.assertEqual(1, log.errors)
+        self.assertEqual(0, project.redmine_project_id)
 
     def test_import_is_idempotent_and_updates_only_newer(self):
         log = self._run(self._entry())

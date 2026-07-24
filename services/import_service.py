@@ -116,6 +116,30 @@ class RedmineImportService(object):
             raise ValueError("Redmine import is not enabled for this project.")
         if self.project.redmine_backend_id != self.backend:
             raise ValueError("The project is linked to a different Redmine backend.")
+        identifier = (self.project.redmine_project_identifier or "").strip()
+        if identifier:
+            project_id = self.client.resolve_project_id(identifier)
+            if self.project.redmine_project_id != project_id:
+                conflict = self._sudo_model("project.project").search(
+                    [
+                        ("id", "!=", self.project.id),
+                        ("redmine_backend_id", "=", self.backend.id),
+                        ("redmine_project_id", "=", project_id),
+                    ],
+                    limit=1,
+                )
+                if conflict:
+                    raise ValueError(
+                        "The resolved Redmine project is already mapped to another "
+                        "Odoo project."
+                    )
+                try:
+                    with self.env.cr.savepoint():
+                        self.project.sudo().write({"redmine_project_id": project_id})
+                except Exception:
+                    raise ValueError("The resolved Redmine project ID could not be stored.")
+        elif self.project.redmine_project_id <= 0:
+            raise ValueError("The project has no Redmine project identifier.")
         if self.project.company_id and self.project.company_id != self.backend.company_id:
             raise ValueError("The project and Redmine backend companies do not match.")
         if not self.date_from or not self.date_to or self.date_from > self.date_to:

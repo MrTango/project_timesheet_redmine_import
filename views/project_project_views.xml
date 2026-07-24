@@ -11,8 +11,8 @@
                         <group string="Project Mapping">
                             <field name="company_id" invisible="1"/>
                             <field name="redmine_backend_id" domain="[('company_id', '=', company_id)]" options="{'no_create_edit': True}"/>
-                            <field name="redmine_project_id"/>
-                            <field name="redmine_project_identifier"/>
+                            <field name="redmine_project_identifier" attrs="{'required': [('redmine_import_enabled', '=', True)]}"/>
+                            <field name="redmine_project_id" readonly="1"/>
                             <field name="redmine_import_enabled"/>
                             <field name="last_redmine_sync"/>
                         </group>

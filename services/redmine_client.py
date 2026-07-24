@@ -2,7 +2,7 @@
 
 import logging
 import time
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 import requests
 
@@ -93,6 +93,22 @@ class RedmineClient(object):
         if not isinstance(payload.get("user"), dict) or not payload["user"].get("id"):
             raise RedmineAPIError("Redmine did not return the authenticated user.")
         return True
+
+    def resolve_project_id(self, identifier):
+        identifier = (identifier or "").strip()
+        if not identifier:
+            raise RedmineAPIError("A Redmine project identifier is required.")
+        payload = self._get("projects/%s.json" % quote(identifier, safe=""))
+        project = payload.get("project")
+        if not isinstance(project, dict):
+            raise RedmineAPIError("Redmine did not return a project.")
+        try:
+            project_id = int(project.get("id"))
+        except (TypeError, ValueError):
+            raise RedmineAPIError("Redmine returned an invalid project ID.")
+        if project_id <= 0:
+            raise RedmineAPIError("Redmine returned an invalid project ID.")
+        return project_id
 
     def _iter_collection(self, path, collection, params=None, limit=None):
         offset = 0
