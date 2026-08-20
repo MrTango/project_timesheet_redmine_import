@@ -15,7 +15,7 @@ class RedmineImportWizard(models.TransientModel):
     project_id = fields.Many2one("project.project", required=True, readonly=True)
     date_from = fields.Date(required=True)
     date_to = fields.Date(required=True)
-    preview_only = fields.Boolean(default=True)
+    preview_only = fields.Boolean(default=False)
     update_existing = fields.Boolean(default=True)
 
     @api.model

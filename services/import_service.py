@@ -2,7 +2,9 @@
 
 import logging
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, time, timedelta
+
+import pytz
 
 from odoo import _, fields
 
@@ -225,9 +227,13 @@ class RedmineImportService(object):
         activity = entry.get("activity") or {}
         activity_id = integer_id(activity, "id")
         description = (entry.get("comments") or "").strip()
+        if not description and issue_id:
+            description = self._issue_subject(issue_id)
         if not description:
             description = activity.get("name") or "Redmine time entry %s" % entry_id
-        return {
+        if issue_id:
+            description = "#%s: %s" % (issue_id, description)
+        values = {
             "name": description,
             "date": spent_on,
             "unit_amount": parse_hours(entry.get("hours")),
@@ -242,6 +248,38 @@ class RedmineImportService(object):
             "redmine_backend_id": self.backend.id,
             "redmine_updated_on": parse_datetime(entry.get("updated_on"), "updated_on"),
         }
+        self._apply_time_control(values, spent_on)
+        return values
+
+    def _line_field_names(self):
+        return set(self.env["account.analytic.line"]._fields)
+
+    def _apply_time_control(self, values, spent_on):
+        """Fill optional start/end datetimes (e.g. project_timesheet_time_control).
+
+        Without explicit values those fields default to the import moment and
+        may in turn overwrite the line date, so derive them from the Redmine
+        entry: start at 00:00 of spent_on, end after the spent hours.
+        """
+        field_names = self._line_field_names()
+        if "date_time" not in field_names:
+            return
+        start = self._spent_on_start(spent_on)
+        values["date_time"] = start
+        if "date_time_end" in field_names:
+            values["date_time_end"] = start + timedelta(hours=values["unit_amount"])
+
+    def _spent_on_start(self, spent_on):
+        """Return spent_on midnight in the import user's timezone as naive UTC."""
+        naive_midnight = datetime.combine(spent_on, time.min)
+        tz_name = self.env.context.get("tz") or self.env.user.tz
+        if tz_name:
+            try:
+                tz = pytz.timezone(tz_name)
+                return tz.localize(naive_midnight).astimezone(pytz.utc).replace(tzinfo=None)
+            except pytz.UnknownTimeZoneError:
+                pass
+        return naive_midnight
 
     def _resolve_employee(self, user_id, entry_user):
         mapping = self._employee_maps.get(user_id)
@@ -372,6 +410,19 @@ class RedmineImportService(object):
         if values and not self.preview:
             task.sudo().with_context(**self.company_context).write(values)
         return task
+
+    def _issue_subject(self, issue_id):
+        """Return the issue subject for empty-comment descriptions, or ""."""
+        try:
+            issue = self._get_issues().get(issue_id) or {}
+        except (RedmineAPIError, ValueError) as error:
+            self._warning(
+                issue_id,
+                "Redmine issue %s could not be loaded for the description: %s"
+                % (issue_id, safe_message(error, self.backend.api_key)),
+            )
+            return ""
+        return (issue.get("subject") or "").strip()
 
     def _get_issues(self):
         if self._issues is not None:

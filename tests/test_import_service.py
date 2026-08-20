@@ -1,6 +1,6 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from datetime import date
+from datetime import date, datetime
 
 from odoo.exceptions import ValidationError
 from odoo.tests.common import SavepointCase
@@ -231,6 +231,83 @@ class TestRedmineImportService(SavepointCase):
         self.assertEqual(1, log.updated)
         self.assertEqual(3.0, line.unit_amount)
         self.assertEqual(1, len(line))
+
+    def test_wizard_preview_defaults_to_disabled(self):
+        wizard = self.env["redmine.import.wizard"].with_context(
+            default_project_id=self.project.id
+        ).create(
+            {
+                "project_id": self.project.id,
+                "date_from": date(2025, 1, 1),
+                "date_to": date(2025, 1, 31),
+            }
+        )
+        self.assertFalse(wizard.preview_only)
+
+    def test_description_is_prefixed_with_issue_number(self):
+        entry = self._entry()
+        entry["id"] = 7007
+        entry["issue"] = {"id": 81}
+        log = self._run(entry)
+        self.assertEqual("done", log.state)
+        line = self.env["account.analytic.line"].search(
+            [("redmine_backend_id", "=", self.backend.id), ("redmine_time_entry_id", "=", 7007)]
+        )
+        self.assertEqual("#81: Implemented feature", line.name)
+
+    def test_empty_comment_falls_back_to_issue_title(self):
+        entry = self._entry()
+        entry["id"] = 8008
+        entry["issue"] = {"id": 81}
+        entry["comments"] = "  "
+        issue = {
+            "id": 81,
+            "project": {"id": 42},
+            "subject": "Fix login",
+            "updated_on": "2025-01-02T11:00:00Z",
+        }
+        log = self._run(entry, client=FakeRedmineClient([entry], issues=[issue]))
+        self.assertEqual("done", log.state)
+        line = self.env["account.analytic.line"].search(
+            [("redmine_backend_id", "=", self.backend.id), ("redmine_time_entry_id", "=", 8008)]
+        )
+        self.assertEqual("#81: Fix login", line.name)
+
+    def test_entry_date_matches_redmine_spent_on(self):
+        entry = self._entry()
+        entry["id"] = 9009
+        log = self._run(entry)
+        self.assertEqual("done", log.state)
+        line = self.env["account.analytic.line"].search(
+            [("redmine_backend_id", "=", self.backend.id), ("redmine_time_entry_id", "=", 9009)]
+        )
+        self.assertEqual(date(2025, 1, 2), line.date)
+
+    def _service(self, entries=None, client=None):
+        service = RedmineImportService(
+            self.env,
+            self.backend,
+            self.project,
+            date(2025, 1, 1),
+            date(2025, 1, 31),
+            client=client or FakeRedmineClient(entries or []),
+        )
+        service._load_mapping_caches()
+        return service
+
+    def test_time_control_fields_use_redmine_spent_on(self):
+        self.env.user.tz = "Europe/Berlin"
+        service = self._service()
+        service._line_field_names = lambda: {"date_time", "date_time_end"}
+        values = service._prepare_values(self._entry())
+        self.assertEqual(datetime(2025, 1, 1, 23, 0), values["date_time"])
+        self.assertEqual(datetime(2025, 1, 2, 1, 30), values["date_time_end"])
+        self.assertEqual(date(2025, 1, 2), values["date"])
+
+    def test_time_control_fields_skipped_when_not_installed(self):
+        values = self._service()._prepare_values(self._entry())
+        self.assertNotIn("date_time", values)
+        self.assertNotIn("date_time_end", values)
 
     def test_preview_does_not_create_timesheet(self):
         entry = self._entry()

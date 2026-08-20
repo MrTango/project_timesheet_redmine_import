@@ -4,7 +4,7 @@
 {
     "name": "Project Timesheet Redmine Import",
     "summary": "Import Redmine time entries into Odoo timesheets",
-    "version": "13.0.1.0.0",
+    "version": "13.0.1.1.0",
     "category": "Services/Project",
     "website": "https://github.com/OCA/project",
     "author": "Odoo Community Association (OCA)",
