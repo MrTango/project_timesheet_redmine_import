@@ -224,6 +224,8 @@ class RedmineImportService(object):
             )
         issue_id = integer_id(entry.get("issue"), "id")
         task = self._resolve_task(issue_id) if issue_id else False
+        if not task:
+            task = self.project.redmine_default_task_id or False
         activity = entry.get("activity") or {}
         activity_id = integer_id(activity, "id")
         description = (entry.get("comments") or "").strip()

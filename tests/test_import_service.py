@@ -353,6 +353,65 @@ class TestRedmineImportService(SavepointCase):
         )
         self.assertEqual(task, line.task_id)
 
+    def test_default_task_collects_entries_without_task_creation(self):
+        default_task = self.env["project.task"].create(
+            {"name": "Redmine Hours", "project_id": self.project.id}
+        )
+        self.project.redmine_default_task_id = default_task
+        with_issue = self._entry()
+        with_issue["id"] = 5501
+        with_issue["issue"] = {"id": 81}
+        without_issue = self._entry()
+        without_issue["id"] = 5502
+        log = self._run(with_issue, client=FakeRedmineClient([with_issue, without_issue]))
+        self.assertEqual("done", log.state)
+        self.assertEqual(2, log.imported)
+        lines = self.env["account.analytic.line"].search(
+            [
+                ("redmine_backend_id", "=", self.backend.id),
+                ("redmine_time_entry_id", "in", [5501, 5502]),
+            ]
+        )
+        self.assertEqual(2, len(lines))
+        self.assertEqual(default_task, lines.mapped("task_id"))
+
+    def test_synchronized_task_wins_over_default_task(self):
+        default_task = self.env["project.task"].create(
+            {"name": "Redmine Hours", "project_id": self.project.id}
+        )
+        self.project.write(
+            {
+                "redmine_default_task_id": default_task.id,
+                "redmine_create_tasks": True,
+            }
+        )
+        entry = self._entry()
+        entry["id"] = 5503
+        entry["issue"] = {"id": 82}
+        issue = {
+            "id": 82,
+            "project": {"id": 42},
+            "subject": "Fix logout",
+            "updated_on": "2025-01-02T11:00:00Z",
+        }
+        log = self._run(entry, client=FakeRedmineClient([entry], issues=[issue]))
+        self.assertEqual(1, log.imported)
+        line = self.env["account.analytic.line"].search(
+            [("redmine_backend_id", "=", self.backend.id), ("redmine_time_entry_id", "=", 5503)]
+        )
+        self.assertNotEqual(default_task, line.task_id)
+        self.assertEqual(82, line.task_id.redmine_issue_id)
+
+    def test_default_task_must_belong_to_project(self):
+        other_project = self.env["project.project"].create(
+            {"name": "Other Project", "company_id": self.env.company.id}
+        )
+        foreign_task = self.env["project.task"].create(
+            {"name": "Foreign Task", "project_id": other_project.id}
+        )
+        with self.assertRaises(ValidationError):
+            self.project.redmine_default_task_id = foreign_task
+
     def test_import_uses_project_company(self):
         company = self.env["res.company"].create({"name": "Second Company"})
         employee = self.env["hr.employee"].create(

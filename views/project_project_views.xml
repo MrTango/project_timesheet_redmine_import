@@ -19,6 +19,7 @@
                         <group string="Issue to Task Synchronization">
                             <field name="redmine_create_tasks"/>
                             <field name="redmine_task_update_policy" attrs="{'invisible': [('redmine_create_tasks', '=', False)], 'required': [('redmine_create_tasks', '=', True)]}"/>
+                            <field name="redmine_default_task_id" domain="[('project_id', '=', id)]" options="{'no_create_edit': True}"/>
                             <div class="text-muted" colspan="2">
                                 Closed Redmine issues never archive or delete Odoo tasks.
                             </div>

@@ -53,6 +53,16 @@ class ProjectProject(models.Model):
         default="never",
         groups="project.group_project_manager,base.group_system",
     )
+    redmine_default_task_id = fields.Many2one(
+        "project.task",
+        string="Default Task for Imported Time",
+        ondelete="set null",
+        copy=False,
+        groups="project.group_project_manager,base.group_system",
+        help="Imported time entries that are not linked to a synchronized "
+        "task are assigned to this task. With task creation disabled this "
+        "collects all imported time entries.",
+    )
 
     _sql_constraints = [
         (
@@ -93,6 +103,15 @@ class ProjectProject(models.Model):
                 and project.redmine_backend_id.company_id != project.company_id
             ):
                 raise ValidationError(_("The project and Redmine backend companies must match."))
+
+    @api.constrains("redmine_default_task_id")
+    def _check_redmine_default_task(self):
+        for project in self:
+            task = project.redmine_default_task_id
+            if task and task.project_id != project:
+                raise ValidationError(
+                    _("The default task for imported time must belong to this project.")
+                )
 
     def action_open_redmine_import_wizard(self):
         self.ensure_one()
